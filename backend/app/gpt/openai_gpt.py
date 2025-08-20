@@ -53,16 +53,48 @@ class OpenaiGPT(GPT):
     def list_models(self):
         return self.client.list_models()
     def summarize(self, source: GPTSource) -> str:
+        from langchain.chains import MapReduceDocumentsChain
+        from langchain.chains.combine_documents.stuff import StuffDocumentsChain
+        from langchain.chains.llm import LLMChain
+        from langchain.prompts import PromptTemplate
+
         self.screenshot = source.screenshot
         self.link = source.link
         source.segment = self.ensure_segments_type(source.segment)
-        messages = self.create_messages(source.segment, source.title,source.tags)
-        response = self.client.chat(
-            model=self.model,
-            messages=messages,
-            temperature=0.7
+        segment_text = self._build_segment_text(source.segment)
+
+        # Split the text into chunks
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=200)
+        texts = text_splitter.split_text(segment_text)
+
+        # Map step
+        map_template = """Summarize the following text:
+        {text}
+        Summary:"""
+        map_prompt = PromptTemplate.from_template(map_template)
+        map_chain = LLMChain(llm=self.client, prompt=map_prompt)
+
+        # Reduce step
+        reduce_template = """Combine the following summaries into a single, coherent summary:
+        {text}
+        Combined Summary:"""
+        reduce_prompt = PromptTemplate.from_template(reduce_template)
+        reduce_chain = LLMChain(llm=self.client, prompt=reduce_prompt)
+
+        # Combine chains
+        combine_documents_chain = StuffDocumentsChain(
+            llm_chain=reduce_chain,
+            document_variable_name="text"
         )
-        return response.choices[0].message.content.strip()
+        map_reduce_chain = MapReduceDocumentsChain(
+            llm_chain=map_chain,
+            combine_documents_chain=combine_documents_chain,
+            document_variable_name="text"
+        )
+
+        # Run the chain
+        result = map_reduce_chain.run(texts)
+        return result.strip()
 
 if __name__ == '__main__':
     gpt = OpenaiGPT()

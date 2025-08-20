@@ -2,6 +2,8 @@
 services:
   backend:
     container_name: bilinote-backend
+      #command: tail -f /dev/null
+      #privileged: true
     build:
       context: .
       dockerfile: backend/Dockerfile

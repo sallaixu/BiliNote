@@ -5,5 +5,7 @@ export const uploadFile = (formData: FormData) => {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
+    // 单独设置超时时间
+    timeout: 300000
   })
 }
