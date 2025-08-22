@@ -17,7 +17,7 @@ ENV PATH="/usr/bin:${PATH}"
 ENV HF_ENDPOINT=https://hf-mirror.com
 
 WORKDIR /app
-COPY ./ /app
+COPY ./backend /app
 RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 RUN pip install --pre --upgrade ctranslate2 \
     -f https://opennmt.net/CTranslate2/python.html

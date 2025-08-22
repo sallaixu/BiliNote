@@ -50,7 +50,8 @@ class WhisperTranscriber(Transcriber):
 
         model_dir = get_model_dir("whisper")
         model_path = os.path.join(model_dir, f"whisper-{model_size}")
-        if not Path(model_path).exists():
+        model_bin_path = os.path.join(model_dir, f"whisper-{model_size}/model.bin")
+        if not Path(model_path).exists() or not Path(model_bin_path).exists():
             logger.info(f"模型 whisper-{model_size} 不存在，开始下载...")
             repo_id = MODEL_MAP[model_size]
             model_path = snapshot_download(
@@ -94,7 +95,12 @@ class WhisperTranscriber(Transcriber):
     def transcript(self, file_path: str) -> TranscriptResult:
         try:
 
-            segments_raw, info = self.model.transcribe(file_path)
+            segments_raw, info = self.model.transcribe(file_path,task="transcribe",
+                                                        vad_filter=True,
+                                                        vad_parameters=dict(
+                                                        min_silence_duration_ms=1000,
+                                                        # threshold=0.5
+                                                        ))
 
             segments = []
             full_text = ""
